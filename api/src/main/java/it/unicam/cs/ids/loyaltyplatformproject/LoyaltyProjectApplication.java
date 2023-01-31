@@ -207,7 +207,211 @@ public class LoyaltyProjectApplication {
             }
         } while (!flag);
     }
+    private static void homeTitolare() throws SQLException, DateMistake, AbilitationException {
+        boolean flag=false;
+        TitolarePuntoVendita titolare= null;
+        do {
+            System.out.println("Inserire il username: /n");
+            String username = sc.nextLine();
+            System.out.println("Inserire la password");
+            String password = sc.nextLine();
+            boolean locale = false;
+            for (TitolarePuntoVendita tpv : controllerRegistrazioni.getAllEsercenti()) {
+                if (tpv.getUsername().equals(username) && tpv.getPassword().equals(password)) {
+                    titolare= new TitolarePuntoVendita(tpv.getId(), tpv.getNome(), tpv.getCognome(), tpv.getIndirizzo(), tpv.getEmail(), tpv.getUsername(), tpv.getPassword(), tpv.getTelefono(), tpv.isAbilitato());
+                    locale = true;
+                }
+            }
+            if (!locale) {
+                System.out.println("Username o password con valori errati");
+                flag = true;
+            }
+            if(locale)
+            {
+                System.out.println("Benvenuto "+ titolare.getUsername()+" : id "+titolare.getId()+"");
+                System.out.println("Seleziona l'operazione da eseguire");
+                System.out.println("1-Effettua pagamento piattaforma");
+                System.out.println("2-Aggiungi Programma al proprio punto vendita");
+                System.out.println("3-Elimina programma dal proprio punto vendita");
+                System.out.println("4-Impostazioni carta di credito");
+                System.out.println("5-Ritorna al menu scelta dei ruoli");
+                switch (provaScannerInt()){
+                    case 1->{
+                        titolare=controllerRegistrazioni.findById(titolare.getId());
+                        if(!titolare.isAbilitato()){
+                            titolare.effettuaPagamento();
+                            System.out.println("Ora sei abilitato alla piattaforma");
+                            flag=true;}
+                        else{System.out.println("Hai gia aderito alla piattaforma");
+                            flag=true;}
 
+                    }
+                    case 2->{
+                        titolare=controllerRegistrazioni.findById(titolare.getId());
+                        if(titolare.isAbilitato()){
+                            controllerProgrammaFedelta.visualizzaProgrammiPunti();
+                            controllerProgrammaFedelta.visualizzaProgrammiLivelli();
+                            System.out.println(controllerProgrammaFedelta.toString());
+                            System.out.println("Inserisci l'id del programma da aggiungere al proprio punto vendita");
+                            int id=sc.nextInt();
+                            ProgrammaFedelta pf= controllerProgrammaFedelta.findById(id);
+                            if(pf instanceof ProgrammaPunti pp){
+                                System.out.println("modifica il campo valore per singolo punto del programma "+id+"");
+                                int setValoreXPunto=sc.nextInt();
+                                System.out.println("modifica il campo dei punti da totalizzare del programma "+id+"");
+                                int setTotPunti=sc.nextInt();
+                                pp.setValoreXPunto(setValoreXPunto);
+                                pp.setTotPunti(setTotPunti);
+                            }
+                            else if(pf instanceof ProgrammaLivelli pl){
+                                System.out.println("modifica il campo livello massimo del programma "+id+"");
+                                int setLivelloMax=sc.nextInt();
+                                System.out.println("modifica il campo dei totali punti del programma "+id+"");
+                                int setPuntiTot=sc.nextInt();
+                                System.out.println("modifica il campo valore per singolo percentuale livello del programma "+id+"");
+                                int setValoreXPercentuale=sc.nextInt();
+                                pl.setLivelloMax(setLivelloMax);
+                                pl.setPuntiTot(setPuntiTot);
+                                pl.setValoreXPercentualeLivello(setValoreXPercentuale);
+                            }
+                            controllerProgrammaFedelta.updateProgrammaGestore(pf);
+                            titolare.aggiungiProgrammaFedeltaPuntoVendita(pf.getId());
+                            System.out.println("Il programma con id: "+id+" é stato aggiunto");
+                            System.out.println("Creazione Coupon");
+                            boolean flagCoupon=false;
+                            do {
+                                String nomeCoupon = "coupon";
+                                System.out.println("Inserisci i punti da totalizzare per sbloccare questo coupon");
+                                int costoCoupon = sc.nextInt();
+                                if (pf instanceof ProgrammaPunti pp) {
+                                    Coupon coupon = new Coupon(nomeCoupon, costoCoupon, pp, null);
+                                    controllerCoupon.addCoupon(coupon);
+                                    System.out.println("Hai inserito il coupon del programma " + pp.getNome() + "");
+                                    System.out.println("Inserisci false per inserire un altro coupon, altrimenti true per uscire");
+                                    flagCoupon = sc.nextBoolean();
+                                }
+                            }while (!flagCoupon);
+                            flag=true;
+                        }
+                        else{System.out.println("Non hai ancora aderito alla piattaforma");
+                            flag=true;}
+                    }
+                    case 3->{
+                        if(titolare.isAbilitato()){
+                            PuntoVendita puntoVendita= null;
+                            for(PuntoVendita pv: controllerPuntoVendita.visualizzaPuntoVendita()){
+                                if(pv.getTitolare().getId()==titolare.getId()){
+                                    puntoVendita= new PuntoVendita(pv.getNomePuntoVendita(), pv.getIndirizzo(), pv.getTitolare());
+                                }
+                            }
+                            controllerPuntoVendita.visualizzaProgrammiPuntiTitolare(puntoVendita);
+                            controllerPuntoVendita.visualizzaProgrammiLivelliTitolare(puntoVendita);
+                            System.out.println(controllerPuntoVendita.toString());
+                            System.out.println("inserire l'id del programma da eliminare");
+                            int id=sc.nextInt();
+                            controllerPuntoVendita.deleteById(id);
+                            System.out.println("Il programma "+id+" é stato rimosso");
+                            flag=true;
+                        }
+                    }
+                    case 4->{
+                        do {
+                            System.out.println("1-Aggiungi i dati della carta di credito");
+                            System.out.println("2-Ricarica carta");
+                            System.out.println("3-Ritorna al menu operazioni del titolare ");
+                            switch (provaScannerInt()) {
+                                case 1 -> {
+                                    System.out.println("Inserire il cvv");
+                                    String cvv = sc.nextLine();
+                                    System.out.println("Inserire il pin");
+                                    String pin = sc.nextLine();
+                                    System.out.println("Inserire il numero della carta");
+                                    int numeroCarta = sc.nextInt();
+                                    System.out.println("Inserire data di scadenza");
+                                    long scadenzaDate = sc.nextInt();
+                                    Date scadenza= new Date(scadenzaDate);
+                                    CartaDiCredito cc=new CartaDiCredito(numeroCarta, scadenza,cvv,pin);
+                                    controllerPagamento.addCarta(cc);
+                                    controllerRegistrazioni.updateCarta(titolare,cc);
+                                    System.out.println("carta inserita");
+                                    flag=true;
+                                }
+                                case 2 -> {
+                                    titolare=controllerRegistrazioni.findById(titolare.getId());
+                                    if(titolare.getCarta()!=null){
+                                        System.out.println("Seleziona l'importo da caricare sulla carta");
+                                        int importo= sc.nextInt();
+                                        titolare.getCarta().incrementaSaldo(importo);
+                                        System.out.println("Ricarica Effettuata");
+                                        flag=true;
+                                    }
+                                    else{System.out.println("Devi inserire la carta per ricaricare");}
+                                    flag=true;
+                                }
+                                case 3->{flag=true;}
+                            }
+                        }while(!flag);
+                    }
+                    case 5->{flag=true;}
+                }
+            }
+        }while(!flag);
+    }
+
+
+    private static void homeClienti() throws SQLException, DateMistake {
+        boolean flag=false;
+        Cliente cliente= null;
+        do {
+            System.out.println("Inserire il username: /n");
+            String username = sc.nextLine();
+            System.out.println("Inserire la password");
+            String password = sc.nextLine();
+            boolean locale = false;
+            for (Cliente c : controllerRegistrazioni.visualizzaClienti()) {
+                if (c.getUsername().equals(username) && c.getPassword().equals(password)) {
+                    cliente= new Cliente(c.getId(), c.getNome(), c.getCognome(), c.getIndirizzo(), c.getEmail(), c.getUsername(), c.getPassword(), c.getTelefono());
+                    locale = true;
+                }
+            }
+            if (!locale) {
+                System.out.println("Username o password con valori errati");
+                flag = true;
+            }
+            if(locale)
+            {
+                System.out.println("Benvenuto "+ cliente.getUsername()+" : id "+cliente.getId()+"");
+                System.out.println("Seleziona l'operazione da eseguire");
+                System.out.println("1-Cerca Punto vendita");
+                System.out.println("2-Visualizza profilo");
+                System.out.println("3-Ritorna al menu scelta dei ruoli");
+                switch (provaScannerInt()){
+                    case 1->{
+                        controllerPuntoVendita.visualizzaPuntoVendita();
+                        System.out.println(controllerPuntoVendita.toStringPuntiVendita());
+                        System.out.println("inserire il nome di un punto vendita esistente");
+                        String nomePv=sc.nextLine();
+                        System.out.println("Inserire il nome della carta da creare");
+                        String nomeCarta=sc.nextLine();
+                        System.out.println("Inserire la scadenza della carta");
+                        long scadenzaCarta= sc.nextLong();
+                        Date scadenzaCf= new Date(scadenzaCarta);
+                        CartaFedelta cf= new CartaFedelta(nomeCarta,scadenzaCf,controllerPuntoVendita.findById(nomePv),cliente);
+                        cliente.creaCarta(cf);
+                        System.out.println("Ottimo Hai creato la carta fedelta con "+nomePv+"");
+                        flag=true;
+                    }
+                    case 2->{
+                        controllerCarta.visualizzaCarteFedelta(cliente);
+                        System.out.println("Lista delle proprie carte fedelta");
+                        System.out.println(controllerCarta.toString());
+                        flag=true;
+                    }
+                    case 3->{flag=true;}
+                }
+            }
+        }while(!flag);
+    }
     private static void elimina() throws SQLException {
         System.out.println("Inserire il nome");
         String nome = sc.nextLine();
