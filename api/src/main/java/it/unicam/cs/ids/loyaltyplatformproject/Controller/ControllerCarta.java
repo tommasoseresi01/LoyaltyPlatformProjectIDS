@@ -18,10 +18,10 @@ public class ControllerCarta {
 
     public void addCarta(CartaFedelta c) throws DateMistake, SQLException {
         if(findById(c.getId())==null){
-            String query= "INSERT INTO cartefedelta (id_cf, nome_cf, scadenza_cf, punticorrenti, livellocorrente, percentualelivello nome_puntovendita, cliente_id ) VALUES('" + c.getId() + "', '" + c.getNomeCarta() + "', '" +c.getScadenza() + "', '" + c.getPuntiCorrenti() + "', '" + c.getLivelliCorrenti() + "', '" + c.getPercentualeLivello() + "', '" + c.getCartaPuntoVendita().getNomePuntoVendita() + "', '" + c.getCliente() + "')";
+            String query= "INSERT INTO cartefedelta (id_cf, nome_cf, scadenza_cf, punticorrenti, livellocorrente, percentualelivello, puntovenditanome_pv, clientiid_c ) VALUES('" + c.getId() + "', '" + c.getNomeCarta() + "', '" +c.getScadenza() + "', '" + c.getPuntiCorrenti() + "', '" + c.getLivelliCorrenti() + "', '" + c.getPercentualeLivello() + "', '" + c.getCartaPuntoVendita().getNomePuntoVendita() + "', '" + c.getCliente().getId() + "')";
             DBMSController.insertQuery(query);
         }
-        throw new DateMistake("La carta é gia esistente");
+        else throw new DateMistake("La carta é gia esistente");
     }
 
     public CartaFedelta findById(int id) {
@@ -31,7 +31,7 @@ public class ControllerCarta {
                 cartaFedelta=p;
         }
         if(cartaFedelta==null){
-            throw new NullPointerException();
+            return null;
         }
         return cartaFedelta;
     }
@@ -42,22 +42,39 @@ public class ControllerCarta {
      * @return
      * @throws SQLException
      */
-    public List<CartaFedelta> visualizzaCarteFedelta(Cliente c) throws SQLException {
+    public List<CartaFedelta> visualizzaCarteFedelta(Cliente c) throws SQLException, DateMistake {
         String table="cartefedelta";
         ResultSet resultSet= DBMSController.selectAllFromTable(table);
         while (resultSet.next()){
-            if(c.getId()==resultSet.getInt("cliente_id")){
+            if(c.getId()== resultSet.getInt("clientiid_c")){
                 ControllerRegistrazione cr= new ControllerRegistrazione();
+                cr.visualizzaClienti();
                 ControllerPuntoVendita cp= new ControllerPuntoVendita();
-                PuntoVendita aggiungiPuntoVendita= cp.findById(resultSet.getString("nome_puntovendita"));
-                Cliente aggiungiCliente= cr.getByID(resultSet.getInt("clienti_id"));
-                CartaFedelta cf= new CartaFedelta(resultSet.getString("nome_cf"),
+                cp.visualizzaPuntoVendita();
+                PuntoVendita aggiungiPuntoVendita= cp.findById(resultSet.getString("puntovenditanome_pv"));
+                Cliente aggiungiCliente= cr.getByID(resultSet.getInt("clientiid_c"));
+                CartaFedelta cf= new CartaFedelta(resultSet.getInt("id_cf"), resultSet.getString("nome_cf"),
                         resultSet.getDate("scadenza_cf"), aggiungiPuntoVendita,
-                        aggiungiCliente);
+                        aggiungiCliente, resultSet.getInt("punticorrenti"),
+                        resultSet.getInt("livellocorrente"), resultSet.getInt("percentualelivello"));
                 this.cartaFedeltaList.add(cf);
             }
         }
         return this.cartaFedeltaList;
+    }
+    @Override
+    public String toString() {
+        String string ="";
+        for (CartaFedelta cf : cartaFedeltaList ){
+            string+= "id: ["+ cf.getId()+"] \n" +
+                    "scadenza: ["+ cf.getScadenza()+"] \n" +
+                    "cliente: ["+ cf.getCliente().getUsername()+"] \n" +
+                    "puntovendita: ["+cf.getCartaPuntoVendita()+"]\n" +
+                    "punticorrenti: ["+cf.getPuntiCorrenti()+"]\n" +
+                    "livellocorrente: ["+cf.getLivelliCorrenti()+"]\n" +
+                    "-------------------------------------------------\n";
+        }
+        return string;
     }
 
 }
