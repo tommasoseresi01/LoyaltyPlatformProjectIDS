@@ -46,17 +46,14 @@ public class ControllerRegistrazione {
 
     public void addTitolare(TitolarePuntoVendita t) throws SQLException, DateMistake {
         if (sistemaBanca.verificaPagamento(t) == StatoPagamento.PAGATO) {
-            if (findById(t.getId()) == null) {
-                String query = "UPDATE titolari SET abilitato = 'true' WHERE id_t = '" + t.getId() + "'";
-                DBMSController.insertQuery(query);
-            } else new DateMistake("Il titolare é gia presente nella tabella");
-
+            String query = "UPDATE titolari SET abilitato = 'true' WHERE id_t = '" + t.getId() + "'";
+            DBMSController.insertQuery(query);
         } else {
             throw new DateMistake();
         }
     }
 
-    public TitolarePuntoVendita findById(int id) throws SQLException {
+    public TitolarePuntoVendita findById(int id) throws SQLException, DateMistake {
         TitolarePuntoVendita titolare = null;
         for (TitolarePuntoVendita t : getAllEsercenti()) {
             if (t.getId() == id)
@@ -81,17 +78,19 @@ public class ControllerRegistrazione {
         return true;
     }
 
-    public List<TitolarePuntoVendita> getAllEsercenti() throws SQLException {
+    public List<TitolarePuntoVendita> getAllEsercenti() throws SQLException, DateMistake {
         String t = "titolari";
         ResultSet resultset = DBMSController.selectAllFromTable(t);
         while (resultset.next()) {
             ControllerPagamento conn = new ControllerPagamento();
-            //CartaDiCredito daAggiungere = conn.getByID(resultset.getInt("cartadicreditoid_cc"));
+            conn.visualizzaCartaDiCredito();
+            CartaDiCredito daAggiungere = conn.getByID(resultset.getInt("cartadicreditoid_cc"));
             TitolarePuntoVendita titolare = new TitolarePuntoVendita(resultset.getInt("id_t"),
                     resultset.getString("nome_t"), resultset.getString("cognome_t"),
                     resultset.getString("indirizzo_t"), resultset.getString("email_t"),
                     resultset.getString("username_t"), resultset.getString("password"),
-                    resultset.getInt("telefono_t"), resultset.getBoolean("abilitato"));
+                    resultset.getInt("telefono_t"), resultset.getBoolean("abilitato"),
+                    daAggiungere);
             this.titolariAttivita.add(titolare);
         }
         return titolariAttivita;
@@ -109,7 +108,7 @@ public class ControllerRegistrazione {
         String table="clienti";
         ResultSet resultSet= DBMSController.selectAllFromTable(table);
         while (resultSet.next()){
-            Cliente c= new Cliente(resultSet.getString("nome_c"),resultSet.getString("cognome_c"),
+            Cliente c= new Cliente(resultSet.getInt("id_c"), resultSet.getString("nome_c"),resultSet.getString("cognome_c"),
                     resultSet.getString("indirizzo_c"),resultSet.getString("email_c"),
                     resultSet.getString("username_c"), resultSet.getString("password_c"),
                     resultSet.getInt("telefono_c"));
@@ -135,22 +134,24 @@ public class ControllerRegistrazione {
 
     }
 
-    public List<CommessoPuntoVendita> visualizzaCommessi() throws SQLException {
+    public List<CommessoPuntoVendita> visualizzaCommessi() throws SQLException, DateMistake {
         String table="commessopuntovendita";
         ResultSet resultSet= DBMSController.selectAllFromTable(table);
         while (resultSet.next()){
             ControllerPuntoVendita conn= new ControllerPuntoVendita();
+            getAllEsercenti();
+            conn.visualizzaPuntoVendita();
             PuntoVendita pvAggiungi= conn.findById(resultSet.getString("puntovenditanome_pv"));
-            CommessoPuntoVendita cpv= new CommessoPuntoVendita(resultSet.getString("nome_cp"),resultSet.getString("cognome_cp"),
+            CommessoPuntoVendita cpv= new CommessoPuntoVendita(resultSet.getInt("id_cp"), resultSet.getString("nome_cp"),resultSet.getString("cognome_cp"),
                     resultSet.getString("indirizzo_cp"),resultSet.getString("email_cp"),
-                    resultSet.getString("username_cp"), resultSet.getString("password_cp"),
+                    resultSet.getString("username_cp"), resultSet.getString("password"),
                     resultSet.getInt("telefono_cp"), pvAggiungi);
             this.listaCommessi.add(cpv);
         }
         return this.listaCommessi;
     }
 
-    public CommessoPuntoVendita getById(int id) throws SQLException {
+    public CommessoPuntoVendita getById(int id) throws SQLException, DateMistake {
         visualizzaCommessi();
         for(CommessoPuntoVendita c: this.listaCommessi){
             if(id==c.getId())
@@ -159,7 +160,23 @@ public class ControllerRegistrazione {
         return null;
     }
 
+    public void updateCarta(TitolarePuntoVendita t, CartaDiCredito cc) throws SQLException {
+        String query="UPDATE titolari SET cartadicreditoid_cc = '" + cc.getNumeroCarta() + "' WHERE id_t = '" + t.getId() + "'";
+        DBMSController.insertQuery(query);
+    }
 
 
+    public String toStringCliente() {
+        String string ="";
+        for (Cliente c : clienti ){
+            string+= "id: ["+c.getId()+"] \n" +
+                    "nome: ["+c.getNome()+"] \n" +
+                    "cognome: ["+c.getCognome()+"]\n" +
+                    "indirizzo: ["+c.getIndirizzo()+"]\n" +
+                    "email: ["+c.getEmail()+"]\n" +
+                    "------------------------------------ \n";
+        }
+        return string;
+    }
 
-}
+}}
